@@ -1,6 +1,7 @@
 from logging import Logger
 import threading
 import time
+from functools import partial
 
 from game_shared import *
 from .mqtt_base_class import MQTTInitialData, MQTTBaseClass
@@ -12,45 +13,60 @@ class ConnectionManager:
     _instance = None
     _lock = threading.Lock()
 
-    def __new__(cls, *args):
+    def __new__(cls):
         with cls._lock:
             if not cls._instance:
                 cls._instance = super(ConnectionManager, cls).__new__(cls)
                 cls.__initialized = False
         return cls._instance
 
-    def __init__(self, base: MQTTInitialData, role: DEVICE_TYPE, logger: Logger, handle_message:callable):
+    def __init__(self):
         if self.__initialized:
             return
 
-        self.__logger = logger
-        self.__role = role
-        self.__outer_handle_messages = handle_message
-
-        # TODO: Old system- Remove!
-        self.__messages = []
-        self.__last_start_index = 0
-
-        # TODO: New system- Activate!!
-        self.__active_words = {}
-        self.__game_status = GAME_STATUS.HALTED
-        self.__start_timestamp = 0
-
-        self.__mqtt_instance = MQTTBaseClass(base,
-            self.__logger,
-            self.subscribed_topics,
-            self.__handle_message
-        )
-
-    @property
-    def subscribed_topics(self) -> list[str]:
-        if (self.__role == DEVICE_TYPE.CONTROL):
-            return [ Topics.STATE, Topics.word_state(), Topics.DATA ]
-        else: return [ Topics.CONTROL, Topics.word_select() ]
+        self.__initialized = False
 
     @property
     def current_game_status(self) -> GAME_STATUS:
         return self.__game_status
+    
+    @classmethod
+    def get_instance(cls):
+        if not cls._instance:
+            cls._instance = cls()
+        return cls._instance
+        
+    @classmethod    
+    def initialize(cls, base: MQTTInitialData, role: DEVICE_TYPE, logger: Logger, handle_message:callable = None):
+        instance = cls.get_instance()
+        if cls.__initialized:
+            return instance
+        
+        cls.__logger = logger
+        cls.__role = role
+        cls.__outer_handle_messages = handle_message
+
+        # TODO: Old system- Remove!
+        cls.__messages = []
+        cls.__last_start_index = 0
+
+        # TODO: New system- Activate!!
+        cls.__active_words = {}
+        cls.__game_status = GAME_STATUS.HALTED
+        cls.__start_timestamp = 0
+
+        cls.__mqtt_instance = MQTTBaseClass(
+            base,
+            cls.__logger,
+            Topics.topics_per_role(cls.__role),
+            instance.__handle_message
+        )
+        cls.__initialized = True
+
+        return instance
+    
+    def is_initialized(self):
+        return self.__initialized
 
     def close_connection(self) -> None:
         self.__mqtt_instance.__on_close()
@@ -71,9 +87,9 @@ class ConnectionManager:
         elif topic == Topics.STATE:
             self.__update_status(data.status)
         elif topic == Topics.DATA:
-            self.__messages.append(data)
+            self.__messages.append(data.items)
 
-        self.__outer_handle_messages(topic, data)
+        if self.__outer_handle_messages: self.__outer_handle_messages(topic, data)
     
     def get_words(self):
         # return [v for k,v in self.__active_words.items() if v.timestamp > self.__start_timestamp]

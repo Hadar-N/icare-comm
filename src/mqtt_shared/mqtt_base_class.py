@@ -28,7 +28,6 @@ class MQTTBaseClass:
             self.client.username_pw_set(username=base.username,password=base.password)
             self.client.connect(base.host, int(base.port))
             self.client.loop_start()
-            self.__initialized = True
         except Exception as e:
             print("mqtt connection failed! error: ", e)
 
