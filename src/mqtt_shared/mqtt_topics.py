@@ -22,7 +22,7 @@ class Topics:
         return f'game/word/{word}/select'
     @staticmethod
     def is_word_select(topicname: str):
-        return bool(re.search(is_state_re,topicname))
+        return bool(re.search(is_select_re,topicname))
     
     @staticmethod
     def topics_per_role(role: DEVICE_TYPE) -> list[str]:

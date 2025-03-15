@@ -1,4 +1,5 @@
 import json
+import time
 from enum import Enum
 from game_shared import GAME_LEVELS, GAME_MODES, MQTT_COMMANDS, GAME_STATUS, VocabItem
 from .mqtt_topics import Topics
@@ -8,7 +9,10 @@ from .mqtt_topics import Topics
 
 class BodyObject:
     def __init__(self, **kwargs):
-        self._parsed_msg = json.loads(kwargs["msg"]) if len(kwargs) == 1 and "msg" in kwargs else None
+        self._parsed_msg = self.timestamp = None
+        if len(kwargs) == 1 and "msg" in kwargs:
+            self._parsed_msg = json.loads(kwargs["msg"])
+            if ["timestamp"] in self._parsed_msg: self.timestamp = self._parsed_msg["timestamp"]
 
     def __parseFromMsg(self): raise NotImplementedError("method '__parseFromMsg' not implemented!")
     def __parseFromArgs(self): raise NotImplementedError("method '__parseFromArgs' not implemented!")
@@ -31,7 +35,7 @@ class ControlCommandBody(BodyObject):
             if self.command == MQTT_COMMANDS.START:
                 self.payload = {
                     "level": GAME_LEVELS[self._parsed_msg["payload"]["level"]],
-                    "mode": GAME_MODES[self._parsed_msg["payload"]["option"]]
+                    "mode": GAME_MODES[self._parsed_msg["payload"]["mode"]]
                 }
             elif self.command == MQTT_COMMANDS.RESET_DISPLAY:
                 self.payload= self._parsed_msg["payload"]
@@ -64,18 +68,26 @@ class WordStateBody(BodyObject):
     """TODO"""
 
 class WordSelectBody(BodyObject):
-    """TODO"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.word=self._parsed_msg["word"] if self._parsed_msg else kwargs["word"]
+        self.selected=self._parsed_msg["selected"] if self._parsed_msg else kwargs["selected"]
 
 def BodyForTopic(topic, payload) -> BodyObject:
     res= None
     body_class = None
+    print(topic, payload,)
     if topic == Topics.CONTROL: body_class = ControlCommandBody
     elif topic == Topics.DATA: body_class = GameDataBody #TODO: remove
     elif topic == Topics.STATE: body_class = GameStateBody
     elif Topics.is_word_state(topic): body_class = WordStateBody
     elif Topics.is_word_select(topic): body_class = WordSelectBody
+    else: raise("invalid topic!", topic)
 
-    if isinstance(payload, str): return body_class(msg=payload)
-    elif isinstance(payload, dict): return body_class(**payload)
+    if isinstance(payload, str): res = body_class(msg=payload)
+    elif isinstance(payload, dict):
+        res = body_class(**payload)
+        res.timestamp = time.time()
+        return res
 
     return res
