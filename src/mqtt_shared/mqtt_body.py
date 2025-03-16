@@ -12,13 +12,15 @@ class BodyObject:
         self._parsed_msg = self.timestamp = None
         if len(kwargs) == 1 and "msg" in kwargs:
             self._parsed_msg = json.loads(kwargs["msg"])
-            if ["timestamp"] in self._parsed_msg: self.timestamp = self._parsed_msg["timestamp"]
+            if "timestamp" in self._parsed_msg: self.timestamp = self._parsed_msg["timestamp"]
 
     def __parseFromMsg(self): raise NotImplementedError("method '__parseFromMsg' not implemented!")
     def __parseFromArgs(self): raise NotImplementedError("method '__parseFromArgs' not implemented!")
 
     def parseToMsg(self):
         attrs = {key: value.value if isinstance(value, Enum) else value for key, value in self.__dict__.items() if not key.startswith('_')}
+        if not next((k for k in attrs.keys() if k not in ["timestamp", "items"]), None):
+            attrs = attrs["items"]
         return json.dumps(attrs)
 
 class ControlCommandBody(BodyObject):
@@ -56,7 +58,7 @@ class GameDataBody(BodyObject):
         super().__init__(**kwargs)
         self.items = [{"type": i["type"],
                        "word": i["word"] if type(i["word"]) == str else VocabItem(**i["word"]).asDict()
-                       } for i in self._parsed_msg]
+                       } for i in kwargs["items"]]
 
 class GameStateBody(BodyObject):
     def __init__(self, **kwargs):
@@ -76,7 +78,6 @@ class WordSelectBody(BodyObject):
 def BodyForTopic(topic, payload) -> BodyObject:
     res= None
     body_class = None
-    print(topic, payload,)
     if topic == Topics.CONTROL: body_class = ControlCommandBody
     elif topic == Topics.DATA: body_class = GameDataBody #TODO: remove
     elif topic == Topics.STATE: body_class = GameStateBody
@@ -85,9 +86,10 @@ def BodyForTopic(topic, payload) -> BodyObject:
     else: raise("invalid topic!", topic)
 
     if isinstance(payload, str): res = body_class(msg=payload)
+    elif isinstance(payload, list):
+        res = body_class(items=payload)
     elif isinstance(payload, dict):
         res = body_class(**payload)
-        res.timestamp = time.time()
-        return res
 
+    res.timestamp = time.time()
     return res

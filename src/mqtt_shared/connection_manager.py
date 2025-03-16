@@ -1,12 +1,10 @@
 from logging import Logger
 import threading
-import time
-from functools import partial
 
 from game_shared import *
 from .mqtt_base_class import MQTTInitialData, MQTTBaseClass
 from .mqtt_topics import Topics
-from .mqtt_body import BodyObject
+from .mqtt_body import BodyObject, BodyForTopic
 
 class ConnectionManager:
 
@@ -71,10 +69,11 @@ class ConnectionManager:
     def close_connection(self) -> None:
         self.__mqtt_instance.__on_close()
 
-    def publish_message(self, topic: str, msg: BodyObject):
-        if topic == Topics.CONTROL and msg.command == MQTT_COMMANDS.START:
+    def publish_message(self, topic: str, msg: dict):
+        body = BodyForTopic(topic, msg)
+        if topic == Topics.CONTROL and body.command == MQTT_COMMANDS.START:
             self.__last_start_index = len(self.__messages)
-        self.__mqtt_instance.publish_message(topic, msg)
+        self.__mqtt_instance.publish_message(topic, body)
 
     def __update_status(self, new_status: GAME_STATUS, timestamp: float = None):
         self.__game_status = new_status
@@ -89,7 +88,7 @@ class ConnectionManager:
         elif topic == Topics.DATA:
             self.__messages.append(data.items)
 
-        if self.__outer_handle_messages: self.__outer_handle_messages(topic, data)
+        if self.__outer_handle_messages: self.__outer_handle_messages(topic = topic, data = data)
     
     def get_words(self):
         # return [v for k,v in self.__active_words.items() if v.timestamp > self.__start_timestamp]
