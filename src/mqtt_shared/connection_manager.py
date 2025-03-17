@@ -84,7 +84,7 @@ class ConnectionManager:
         if Topics.is_word_state(topic):
             """TODO: add word to active"""
         elif topic == Topics.STATE:
-            self.__update_status(data.status)
+            self.__update_status(data.state)
         elif topic == Topics.DATA:
             self.__messages.append(data.items)
 

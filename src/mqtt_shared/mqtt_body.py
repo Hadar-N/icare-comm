@@ -1,7 +1,8 @@
 import json
 import time
+from dataclasses import is_dataclass, asdict
 from enum import Enum
-from game_shared import GAME_LEVELS, GAME_MODES, MQTT_COMMANDS, GAME_STATUS, VocabItem
+from game_shared import GAME_LEVELS, GAME_MODES, MQTT_COMMANDS, GAME_STATUS, VocabItem, MQTT_DATA_ACTIONS
 from .mqtt_topics import Topics
 
 # def is_property_obj(obj, property):
@@ -14,21 +15,26 @@ class BodyObject:
             self._parsed_msg = json.loads(kwargs["msg"])
             if "timestamp" in self._parsed_msg: self.timestamp = self._parsed_msg["timestamp"]
 
-    def __parseFromMsg(self): raise NotImplementedError("method '__parseFromMsg' not implemented!")
-    def __parseFromArgs(self): raise NotImplementedError("method '__parseFromArgs' not implemented!")
-
     def parseToMsg(self):
-        attrs = {key: value.value if isinstance(value, Enum) else value for key, value in self.__dict__.items() if not key.startswith('_')}
+        attrs = {key: self.__valueToMsg(value) for key, value in self.__dict__.items() if not key.startswith('_')}
         if not next((k for k in attrs.keys() if k not in ["timestamp", "items"]), None):
             attrs = attrs["items"]
         return json.dumps(attrs)
+    
+    def __valueToMsg(self, item):
+        val = item
+        if isinstance(item, Enum): val = item.value
+        elif is_dataclass(item): val = asdict(item)
+        elif hasattr(item, "asDict"): val = item.asDict()
+        elif isinstance(item, list): val = [self.__valueToMsg(i) for i in item]
+        return val 
 
 class ControlCommandBody(BodyObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.command=self.payload=None
         if self._parsed_msg: self.__parseFromMsg()
-        if not self._parsed_msg: self.__parseFromArgs(**kwargs)
+        else: self.__parseFromArgs(**kwargs)
         
     def __parseFromMsg(self):
         try:
@@ -56,18 +62,41 @@ class ControlCommandBody(BodyObject):
 class GameDataBody(BodyObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.items = [{"type": i["type"],
-                       "word": i["word"] if type(i["word"]) == str else VocabItem(**i["word"]).asDict()
-                       } for i in kwargs["items"]]
+        self.items=[]
+        if self._parsed_msg: self.__parseFromMsg()
+        else: self.__parseFromArgs(**kwargs)
+
+    def __parseFromMsg(self):
+        self.items = [WordStateBody(**i) for i in self._parsed_msg]
+
+    def __parseFromArgs(self, **kwargs):
+        self.items = [WordStateBody(**i) for i in kwargs["items"]]
 
 class GameStateBody(BodyObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.state=self._parsed_msg["state"] if self._parsed_msg else kwargs["state"]
-        self.timestamp=self._parsed_msg["timestamp"] if self._parsed_msg else kwargs["timestamp"]
 
 class WordStateBody(BodyObject):
-    """TODO"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.type = self.word= None
+        if self._parsed_msg: self.__parseFromMsg()
+        else: self.__parseFromArgs(**kwargs)
+
+    def __parseFromMsg(self):
+        self.type= MQTT_DATA_ACTIONS(self._parsed_msg["type"])
+        self.word= self._parsed_msg["word"] if isinstance(self._parsed_msg["word"], VocabItem) else VocabItem(**self._parsed_msg["word"])
+
+    def __parseFromArgs(self, **kwargs):
+        self.type= kwargs["type"],
+        self.word= kwargs["word"] if isinstance(kwargs["word"], VocabItem) else VocabItem(**kwargs["word"])
+
+    def asDict(self):
+        return {
+            "type": self.type,
+            "word": self.word.asDict()
+        }
 
 class WordSelectBody(BodyObject):
     def __init__(self, **kwargs):
@@ -75,7 +104,7 @@ class WordSelectBody(BodyObject):
         self.word=self._parsed_msg["word"] if self._parsed_msg else kwargs["word"]
         self.selected=self._parsed_msg["selected"] if self._parsed_msg else kwargs["selected"]
 
-def BodyForTopic(topic, payload) -> BodyObject:
+def BodyForTopic(topic: str, payload: dict | str | list) -> BodyObject:
     res= None
     body_class = None
     if topic == Topics.CONTROL: body_class = ControlCommandBody
@@ -91,5 +120,6 @@ def BodyForTopic(topic, payload) -> BodyObject:
     elif isinstance(payload, dict):
         res = body_class(**payload)
 
-    res.timestamp = time.time()
+    if hasattr(res, "timestamp"): 
+        res.timestamp = time.time()
     return res
