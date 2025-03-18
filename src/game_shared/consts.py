@@ -9,6 +9,7 @@ class DEVICE_TYPE(str, Enum):
 class GAME_STATUS(str, Enum):
     ACTIVE= "active"
     HALTED= "halted"
+    STOPPED= "stopped"
     DONE= "done"
 class GAME_LEVELS(str, Enum):
     BEGINNER = "beginner"

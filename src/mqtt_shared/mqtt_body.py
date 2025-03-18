@@ -15,8 +15,12 @@ class BodyObject:
             self._parsed_msg = json.loads(kwargs["msg"])
             if "timestamp" in self._parsed_msg: self.timestamp = self._parsed_msg["timestamp"]
 
-    def parseToMsg(self):
+    def bodyToDict(self):
         attrs = {key: self.__valueToMsg(value) for key, value in self.__dict__.items() if not key.startswith('_')}
+        return attrs
+
+    def parseToMsg(self):
+        attrs = self.bodyToDict()
         if not next((k for k in attrs.keys() if k not in ["timestamp", "items"]), None):
             attrs = attrs["items"]
         return json.dumps(attrs)
@@ -89,12 +93,12 @@ class WordStateBody(BodyObject):
         self.word= self._parsed_msg["word"] if isinstance(self._parsed_msg["word"], VocabItem) else VocabItem(**self._parsed_msg["word"])
 
     def __parseFromArgs(self, **kwargs):
-        self.type= kwargs["type"],
+        self.type= kwargs["type"] if isinstance(kwargs["type"], MQTT_DATA_ACTIONS) else MQTT_DATA_ACTIONS(kwargs["type"])
         self.word= kwargs["word"] if isinstance(kwargs["word"], VocabItem) else VocabItem(**kwargs["word"])
 
     def asDict(self):
         return {
-            "type": self.type,
+            "type": self.type.value if isinstance(self.type, MQTT_DATA_ACTIONS) else self.type,
             "word": self.word.asDict()
         }
 

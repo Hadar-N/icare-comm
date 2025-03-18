@@ -9,7 +9,6 @@ class VocabOption:
 
 class VocabItem():
     def __init__(self, word: str, meaning: str, **kwargs):
-        print()
         self.word = word
         self.meaning = meaning
         self.options = []
