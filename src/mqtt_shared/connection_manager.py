@@ -25,11 +25,9 @@ class ConnectionManager:
 
         self.__initialized = False
 
-    @property
-    def current_game_status(self) -> GAME_STATUS: return self.__game_status
+    def get_current_game_status(self) -> GAME_STATUS: return self.__game_status
     
-    @property
-    def matched_list(self) -> list: return self.__matched_words
+    def get_matched_list(self) -> list: return self.__matched_words
 
     @classmethod
     def get_instance(cls):
@@ -47,7 +45,7 @@ class ConnectionManager:
         cls.__role = role
         cls.__outer_handle_messages = handle_message
 
-        cls.__matched_words = {}
+        cls.__matched_words = []
         cls.__read_queue = {}
         cls.__game_status = GAME_STATUS.HALTED
 
@@ -87,7 +85,7 @@ class ConnectionManager:
         elif Topics.is_word_state(topic):
             for d_id in self.__read_queue:
                 self.__read_queue[d_id].put(asdict)
-                if data.type == MQTT_DATA_ACTIONS.MATCHED: self.__matched_words.push(asdict)
+            if data.type == MQTT_DATA_ACTIONS.MATCHED: self.__matched_words.append(asdict)
 
         if self.__outer_handle_messages: self.__outer_handle_messages(topic = topic, data = asdict)
     
