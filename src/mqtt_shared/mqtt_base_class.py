@@ -56,6 +56,9 @@ class MQTTBaseClass:
     
     def publish_message(self, topic: str, msg: BodyObject):
         msg_final = msg.parseToMsg()
-        self.__logger.info(f'publishing message: {msg_final} in topic: {topic}')
-        msg_info = self.client.publish(topic, msg_final)
-        msg_info.wait_for_publish()
+        if not self.client.is_connected():
+            self.__logger.error("Client disconnected")
+            return
+        msg_info = self.client.publish(topic, msg_final, qos=1)
+        msg_info.wait_for_publish(timeout=1)
+        self.__logger.info(f'publishing status {msg_info.is_published()} for topic: {topic} message: {msg_final}')
