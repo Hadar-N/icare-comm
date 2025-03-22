@@ -23,7 +23,6 @@ class MQTTBaseClass:
         self.client.on_connect = self.__on_connect
         self.client.on_publish = self.__on_publish
         self.client.on_message = self.__on_message
-        self.client.on_close = self.__on_close
         try:
             self.client.username_pw_set(username=base.username,password=base.password)
             self.client.connect(base.host, int(base.port))
@@ -37,7 +36,7 @@ class MQTTBaseClass:
         for topic in self.__topics:
             client.subscribe(topic)
 
-    def __on_close(self):
+    def close_client(self):
         self.client.disconnect()
         self.client.loop_stop()
 

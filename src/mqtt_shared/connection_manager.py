@@ -66,7 +66,7 @@ class ConnectionManager:
         return self.__initialized
 
     def close_connection(self) -> None:
-        self.__mqtt_instance.__on_close()
+        self.__mqtt_instance.close_client()
 
     def publish_message(self, topic: str, msg: dict) -> None:
         body = BodyForTopic(topic, msg)

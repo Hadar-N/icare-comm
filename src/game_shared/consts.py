@@ -25,6 +25,7 @@ class MQTT_DATA_ACTIONS(str,Enum):
     REMOVE = "remove"
     MATCHED = "matched"
     STATUS = "status"
+    SELECT_FAIL = "select_fail"
 class MQTT_COMMANDS(str, Enum):
     START = "start"
     PAUSE = "pause"
