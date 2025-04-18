@@ -58,15 +58,17 @@ class ConnectionManager:
         cls.__initialized = True
 
         return instance
-    
+                
+    @classmethod
+    def close_connection(cls) -> None:
+        instance = cls.get_instance()
+        if instance: cls.__mqtt_instance.close_client()
+
     def register_device(self, device_id: str):
         self.__read_queue[device_id] = queue.Queue()
         
     def is_initialized(self):
         return self.__initialized
-
-    def close_connection(self) -> None:
-        self.__mqtt_instance.close_client()
 
     def publish_message(self, topic: str, msg: dict) -> None:
         body = BodyForTopic(topic, msg)
