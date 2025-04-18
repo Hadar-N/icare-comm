@@ -44,13 +44,14 @@ class ControlCommandBody(BodyObject):
         try:
             self.command = MQTT_COMMANDS(self._parsed_msg["command"])
             self.payload= None
-            if self.command == MQTT_COMMANDS.START:
-                self.payload = {
-                    "level": GAME_LEVELS[self._parsed_msg["payload"]["level"]],
-                    "mode": GAME_MODES[self._parsed_msg["payload"]["mode"]]
-                }
-            elif self.command == MQTT_COMMANDS.RESET_DISPLAY:
-                self.payload= self._parsed_msg["payload"]
+            if self._parsed_msg["payload"]:
+                if self.command == MQTT_COMMANDS.START:
+                    self.payload = {
+                        "level": GAME_LEVELS[self._parsed_msg["payload"]["level"]],
+                        "mode": GAME_MODES[self._parsed_msg["payload"]["mode"]]
+                    }
+                elif self.command == MQTT_COMMANDS.RESET_DISPLAY:
+                    self.payload= self._parsed_msg["payload"]
         except:
             raise("Invalid parameters!", self._parsed_msg)
         
