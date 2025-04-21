@@ -7,8 +7,7 @@ is_select_re = re.compile("^game/word/[^/]+/select$")
 class Topics:
     CONTROL="game/control"
     STATE="game/state"
-    # TODO: deprecated! should be removed!!!
-    DATA="game/data"
+    CONTOURS="game/contours"
 
     @staticmethod
     def word_state(word: str = '+'):
@@ -25,9 +24,16 @@ class Topics:
         return bool(re.search(is_select_re,topicname))
     
     @staticmethod
+    def get_generic_topicname(topicname:str):
+        if Topics.is_word_select(topicname): return Topics.word_select()
+        if Topics.is_word_state(topicname): return Topics.word_state()
+        elif topicname in [Topics.CONTROL, Topics.STATE, Topics.CONTOURS]: return topicname
+        else: raise Exception("invalid topic name")
+    
+    @staticmethod
     def topics_per_role(role: DEVICE_TYPE) -> list[str]:
         if (role == DEVICE_TYPE.CONTROL):
-            return [ Topics.STATE, Topics.word_state(), Topics.DATA ]
+            return [ Topics.STATE, Topics.word_state(), Topics.CONTOURS ]
         else: return [ Topics.CONTROL, Topics.word_select() ]
 
 

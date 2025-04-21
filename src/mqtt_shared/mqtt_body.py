@@ -109,15 +109,22 @@ class WordSelectBody(BodyObject):
         self.word=self._parsed_msg["word"] if self._parsed_msg else kwargs["word"]
         self.selected=self._parsed_msg["selected"] if self._parsed_msg else kwargs["selected"]
 
+class GameContoursBody(BodyObject):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.contours=self._parsed_msg["contours"] if self._parsed_msg else kwargs["contours"]
+
+topic_body = {
+    Topics.CONTROL : ControlCommandBody,
+    Topics.STATE : GameStateBody,
+    Topics.CONTOURS : GameContoursBody,
+    Topics.word_state() : WordStateBody,
+    Topics.word_select() : WordSelectBody,
+}
+
 def BodyForTopic(topic: str, payload: dict | str | list) -> BodyObject:
     res= None
-    body_class = None
-    if topic == Topics.CONTROL: body_class = ControlCommandBody
-    elif topic == Topics.DATA: body_class = GameDataBody #TODO: remove
-    elif topic == Topics.STATE: body_class = GameStateBody
-    elif Topics.is_word_state(topic): body_class = WordStateBody
-    elif Topics.is_word_select(topic): body_class = WordSelectBody
-    else: raise("invalid topic!", topic)
+    body_class = topic_body[Topics.get_generic_topicname(topic)]
 
     if isinstance(payload, str): res = body_class(msg=payload)
     elif isinstance(payload, list):
