@@ -124,7 +124,7 @@ topic_body = {
 
 def BodyForTopic(topic: str, payload: dict | str | list) -> BodyObject:
     res= None
-    body_class = topic_body[Topics.get_generic_topicname(topic)]
+    body_class = topic_body[Topics.get_relevant_topicname(topic, True)]
 
     if isinstance(payload, str): res = body_class(msg=payload)
     elif isinstance(payload, list):

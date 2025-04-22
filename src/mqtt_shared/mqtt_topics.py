@@ -24,11 +24,19 @@ class Topics:
         return bool(re.search(is_select_re,topicname))
     
     @staticmethod
-    def get_generic_topicname(topicname:str):
-        if Topics.is_word_select(topicname): return Topics.word_select()
-        if Topics.is_word_state(topicname): return Topics.word_state()
-        elif topicname in [Topics.CONTROL, Topics.STATE, Topics.CONTOURS]: return topicname
+    def get_relevant_topicname(topicname:str, is_simplify:bool, word:str = None):
+        res= None
+        if Topics.is_word_state(topicname):
+            if is_simplify: res = Topics.word_state()
+            elif word: res = Topics.word_state(word)
+            else: raise Exception("word required for word state")
+        elif Topics.is_word_select(topicname): 
+            if is_simplify: res = Topics.word_select()
+            elif word: res = Topics.word_select(word)
+            else: raise Exception("word required for word selection")
+        elif topicname in [Topics.CONTROL, Topics.STATE, Topics.CONTOURS]: res = topicname
         else: raise Exception("invalid topic name")
+        return res
     
     @staticmethod
     def topics_per_role(role: DEVICE_TYPE) -> list[str]:
