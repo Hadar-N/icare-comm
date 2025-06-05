@@ -44,7 +44,7 @@ class ControlCommandBody(BodyObject):
         try:
             self.command = MQTT_COMMANDS(self._parsed_msg["command"])
             self.payload= None
-            if self._parsed_msg["payload"]:
+            if self._parsed_msg.get("payload"):
                 if self.command == MQTT_COMMANDS.START:
                     self.payload = {
                         "level": GAME_LEVELS[self._parsed_msg["payload"]["level"]],

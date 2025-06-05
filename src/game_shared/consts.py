@@ -18,6 +18,7 @@ class GAME_LEVELS(str, Enum):
 class GAME_MODES(str, Enum):
     ENtoZH = 'ENtoZH'
     ZHtoEN = 'ZHtoEN'
+    ENtoSpelling = 'ENtoSpelling'
 
 # mqtt consts
 class MQTT_DATA_ACTIONS(str,Enum):
